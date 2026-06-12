@@ -248,7 +248,10 @@ func (fd *FileDownloader) startDownload() error {
 		go fd.startDownloadTask(wg, progressChan, errorChan, task)
 	}
 
+	progressWg := &sync.WaitGroup{}
+	progressWg.Add(1)
 	go func() {
+		defer progressWg.Done()
 		taskProgress := make([]int64, len(fd.DownloadTaskList))
 		totalDownloaded := int64(0)
 
@@ -272,6 +275,7 @@ func (fd *FileDownloader) startDownload() error {
 	go func() {
 		wg.Wait()
 		close(progressChan)
+		progressWg.Wait()
 		close(errorChan)
 	}()
 

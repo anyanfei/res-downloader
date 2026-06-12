@@ -36,6 +36,8 @@
     "clear_list_tip": "Clear all records?",
     "remember_clear_choice": "Remember this selection and clear it next time",
     "batch_download": "Batch Download",
+    "batch_progress": "Batch Progress",
+    "batch_progress_close": "Close",
     "batch_export": "Batch Export",
     "batch_import": "Batch Import",
     "export_url": "Export Url",

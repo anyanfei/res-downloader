@@ -1,5 +1,33 @@
 <template>
   <div class="h-full flex flex-col px-5 pt-5 overflow-y-auto [&::-webkit-scrollbar]:hidden">
+    <Transition name="slide-up">
+      <div v-if="showBatchProgress" class="fixed right-5 bottom-5 w-80 rounded-xl shadow-lg border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 z-50" style="--wails-draggable:no-drag">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+          <span class="text-sm font-medium">{{ t('index.batch_progress') }}</span>
+          <NButton size="tiny" quaternary @click="showBatchProgress = false">
+            <template #icon>
+              <NIcon><CloseOutline /></NIcon>
+            </template>
+          </NButton>
+        </div>
+        <div class="px-4 py-3">
+          <div class="mb-2 text-xs text-gray-500">{{ batchCompleted + batchError }} / {{ batchTotal }}</div>
+          <NProgress
+            type="line"
+            :percentage="batchCompleted + batchError === batchTotal ? 100 : Math.round((batchCompleted + batchError) / Math.max(batchTotal, 1) * 100)"
+            :status="batchError > 0 ? 'warning' : 'success'"
+            :indicator-placement="'inside'"
+            :height="22"
+            :border-radius="4"
+            processing
+          />
+          <div class="flex justify-between mt-1 text-xs text-gray-500">
+            <span>{{ t('index.done') }}: {{ batchCompleted }}</span>
+            <span v-if="batchError > 0">{{ t('index.error') }}: {{ batchError }}</span>
+          </div>
+        </div>
+      </div>
+    </Transition>
     <div class="pb-2 z-40" id="header">
       <NSpace>
         <NButton v-if="isProxy" secondary type="primary" @click.stop="close" style="--wails-draggable:no-drag">
@@ -142,7 +170,7 @@
 </template>
 
 <script lang="ts" setup>
-import {NButton, NIcon, NImage, NInput, NSpace, NTooltip, NPopover, NGradientText} from "naive-ui"
+import {NButton, NIcon, NImage, NInput, NSpace, NTooltip, NPopover, NGradientText, NProgress} from "naive-ui"
 import {computed, h, onMounted, ref, watch} from "vue"
 import type {appType} from "@/types/app"
 import type {DataTableRowKey, ImageRenderToolbarProps, DataTableFilterState, DataTableBaseColumn} from "naive-ui"
@@ -511,6 +539,10 @@ const downloadQueue = ref<appType.MediaInfo[]>([])
 let activeDownloads = 0
 let isOpenProxy = false
 let isInstall = false
+const batchTotal = ref(0)
+const batchCompleted = ref(0)
+const batchError = ref(0)
+const showBatchProgress = ref(false)
 
 onMounted(() => {
   try {
@@ -593,8 +625,10 @@ onMounted(() => {
       switch (res.Status) {
         case "running":
           updateItem(res.Id, item => {
-            item.SavePath = res.Message
-            item.Status = 'running'
+            if (item.Status !== 'done') {
+              item.SavePath = res.Message
+              item.Status = 'running'
+            }
           })
           break
         case "done":
@@ -602,8 +636,10 @@ onMounted(() => {
             item.SavePath = res.SavePath
             item.Status = 'done'
           })
-          if (activeDownloads > 0) {
-            activeDownloads--
+          activeDownloads = Math.max(0, activeDownloads - 1)
+          if (showBatchProgress.value) {
+            batchCompleted.value++
+            checkBatchComplete()
           }
           cacheData()
           checkQueue()
@@ -613,8 +649,10 @@ onMounted(() => {
             item.SavePath = res.Message
             item.Status = 'error'
           })
-          if (activeDownloads > 0) {
-            activeDownloads--
+          activeDownloads = Math.max(0, activeDownloads - 1)
+          if (showBatchProgress.value) {
+            batchError.value++
+            checkBatchComplete()
           }
           cacheData()
           checkQueue()
@@ -789,13 +827,56 @@ const batchDown = async () => {
     return
   }
 
-  data.value.forEach((item, index) => {
-    if (checkedRowKeysValue.value.includes(item.Id) && item.Classify !== 'live' && item.Classify !== 'm3u8') {
-      download(item, index)
-    }
+  const items = data.value.filter(item =>
+    checkedRowKeysValue.value.includes(item.Id) && item.Classify !== 'live' && item.Classify !== 'm3u8'
+  )
+  batchTotal.value = items.length
+  batchCompleted.value = 0
+  batchError.value = 0
+  showBatchProgress.value = true
+
+  items.forEach((item, index) => {
+    download(item, index)
   })
 
   checkedRowKeysValue.value = []
+}
+
+const playCompleteSound = () => {
+  try {
+    const ctx = new AudioContext();
+    // 五声音阶，像风铃一样
+    const notes = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568, 1760];
+    // 随机挑几个不同高度的音
+    const picked = [0, 2, 4, 7, 9].map(i => notes[i]);
+    // 叠加轻微延迟，模拟风吹动
+    const delays = [0, 80, 150, 250, 330];
+    picked.forEach((freq, i) => {
+      const t = ctx.currentTime + delays[i] / 1000 + Math.random() * 0.04;
+      const harmFreqs = [freq, freq * 2.76, freq * 5.4];
+      harmFreqs.forEach((hf, hi) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = hi === 0 ? 'triangle' : 'sine';
+        osc.frequency.value = hf;
+        const vol = [0.3, 0.12, 0.04][hi];
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(vol, t + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 1.2);
+      });
+    });
+    setTimeout(() => ctx.close(), 1800);
+  } catch (_) {}
+}
+
+const checkBatchComplete = () => {
+  if (showBatchProgress.value && batchCompleted.value + batchError.value === batchTotal.value) {
+    playCompleteSound()
+  }
 }
 
 const batchCancel = async () => {
@@ -821,9 +902,7 @@ const batchCancel = async () => {
     }
 
     if (item.Status === "running") {
-      if (activeDownloads > 0) {
-        activeDownloads--
-      }
+      activeDownloads = Math.max(0, activeDownloads - 1)
       cancelTasks.push(appApi.cancel({id: item.Id}).then(() => {
         item.Status = 'ready'
         item.SavePath = ''
@@ -893,7 +972,6 @@ const download = (row: appType.MediaInfo, index: number) => {
   if (activeDownloads >= maxConcurrentDownloads.value) {
     row.Status = "pending"
     downloadQueue.value.push(row)
-    window?.$message?.info(t("index.download_queued", {count: downloadQueue.value.length}))
     return
   }
 
@@ -1095,3 +1173,15 @@ const checkLoading = () => {
   }, 6000)
 }
 </script>
+
+<style scoped>
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(120%);
+  opacity: 0;
+}
+</style>
