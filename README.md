@@ -1,5 +1,26 @@
 <div align="center">
 打包：wails build -clean -upx -webview2="Embed"
+
+生成SSL证书，然后core/app.go中修改证书公钥和密钥:生成命令：openssl req -x509 -newkey rsa:4096 -sha256 -days 7300 -nodes -keyout cert.key -out cert.crt -config ca.conf
+
+新建ca.conf文件，内容如下：
+[req]
+distinguished_name = dn
+x509_extensions = v3_ca
+prompt = no
+
+[dn]
+C=CN
+O=res-downloader
+CN=res-downloader CA
+
+[v3_ca]
+basicConstraints=critical,CA:TRUE,pathlen:0
+keyUsage=critical,keyCertSign,cRLSign
+
+
+生成完毕后，替换PublicCrt和PrivateKey，莫替换错了哈
+
 <a href="https://github.com/putyy/res-downloader"><img src="build/appicon.png" width="120"/></a>
 <h1>res-downloader</h1>
 <h4>📖 中文 | <a href="https://github.com/putyy/res-downloader/blob/master/README-EN.md">English</a></h4>
