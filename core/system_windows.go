@@ -3,6 +3,7 @@
 package core
 
 import (
+	"bytes"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -80,4 +81,41 @@ func (s *SystemSetup) installCert() (string, error) {
 		return "", errors.New("installCert7:" + err.Error())
 	}
 	return "", nil
+}
+
+func (s *SystemSetup) isCertInstalled() bool {
+	certData, err := s.initCert()
+	if err != nil {
+		return false
+	}
+
+	block, _ := pem.Decode(certData)
+	if block == nil {
+		return false
+	}
+
+	certContext, err := windows.CertCreateCertificateContext(windows.X509_ASN_ENCODING|windows.PKCS_7_ASN_ENCODING, &block.Bytes[0], uint32(len(block.Bytes)))
+	if err != nil {
+		return false
+	}
+	defer windows.CertFreeCertificateContext(certContext)
+
+	rootStorePtr, err := windows.UTF16PtrFromString("ROOT")
+	if err != nil {
+		return false
+	}
+
+	store, err := windows.CertOpenStore(windows.CERT_STORE_PROV_SYSTEM, 0, 0, windows.CERT_SYSTEM_STORE_LOCAL_MACHINE, uintptr(unsafe.Pointer(rootStorePtr)))
+	if err != nil {
+		return false
+	}
+	defer windows.CertCloseStore(store, 0)
+
+	found, err := windows.CertFindCertificateInStore(store, windows.X509_ASN_ENCODING|windows.PKCS_7_ASN_ENCODING, 0, windows.CERT_FIND_EXISTING, unsafe.Pointer(certContext), nil)
+	if err != nil || found == nil {
+		return false
+	}
+	defer windows.CertFreeCertificateContext(found)
+
+	return found.Length == certContext.Length && bytes.Equal(unsafe.Slice(found.EncodedCert, found.Length), unsafe.Slice(certContext.EncodedCert, certContext.Length))
 }

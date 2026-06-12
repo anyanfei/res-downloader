@@ -139,7 +139,10 @@
     "support": "支持市面上几乎所有的网络应用",
     "application": "抖音,快手,小红书,视频号,小程序,公众号,酷狗音乐,QQ音乐,QQ微视,......",
     "forum": "论坛",
-    "cert_download": "证书下载",
+    "cert_download": "证书安装",
+    "cert_installing": "安装中...",
+    "cert_installed": "证书已安装",
+    "cert_install_success": "证书安装成功",
     "source_code": "软件源码",
     "help": "帮助支持",
     "update_log": "更新日志"

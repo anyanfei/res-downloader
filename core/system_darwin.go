@@ -127,3 +127,15 @@ func (s *SystemSetup) installCert() (string, error) {
 	}
 	return "", nil
 }
+
+func (s *SystemSetup) isCertInstalled() bool {
+	_, err := s.initCert()
+	if err != nil {
+		return false
+	}
+	output, err := s.runCommand([]string{"security", "find-certificate", "-c", appOnce.AppName, "-Z", "/Library/Keychains/System.keychain"})
+	if err != nil {
+		return false
+	}
+	return len(output) > 0 && !bytes.Contains(output, []byte("(NULL)"))
+}

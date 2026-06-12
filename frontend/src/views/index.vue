@@ -156,12 +156,6 @@
           style="--wails-draggable:no-drag"
       />
     </div>
-    <div class="flex justify-center items-center text-blue-400" id="bottom">
-      <span class="cursor-pointer px-2 py-1" @click="BrowserOpenURL(certUrl)">{{ t('footer.cert_download') }}</span>
-      <span class="cursor-pointer px-2 py-1" @click="BrowserOpenURL('https://github.com/putyy/res-downloader')">{{ t('footer.source_code') }}</span>
-      <span class="cursor-pointer px-2 py-1" @click="BrowserOpenURL('https://github.com/putyy/res-downloader/issues')">{{ t('footer.help') }}</span>
-      <span class="cursor-pointer px-2 py-1" @click="BrowserOpenURL('https://github.com/putyy/res-downloader/releases')">{{ t('footer.update_log') }}</span>
-    </div>
     <Preview v-model:showModal="showPreviewRow" :previewRow="previewRow"/>
     <ShowLoading :loadingText="loadingText" :isLoading="loading"/>
     <ImportJson v-model:showModal="showImport" @submit="handleImport"/>
@@ -207,9 +201,6 @@ const eventStore = useEventStore()
 const dialog = useDialog()
 const isProxy = computed(() => {
   return store.isProxy
-})
-const certUrl = computed(() => {
-  return store.baseUrl + "/api/cert"
 })
 const data = ref<any[]>([])
 const filterClassify = ref<string[]>([])

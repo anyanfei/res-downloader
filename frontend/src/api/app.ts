@@ -120,4 +120,10 @@ export default {
             data: data
         })
     },
+    certCheck() {
+        return request({
+            url: 'api/cert-check',
+            method: 'post'
+        })
+    },
 }

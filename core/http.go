@@ -62,6 +62,13 @@ func (h *HttpServer) downCert(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, io.NopCloser(bytes.NewReader(appOnce.PublicCrt)))
 }
 
+func (h *HttpServer) certCheck(w http.ResponseWriter, r *http.Request) {
+	installed := systemOnce.isCertInstalled()
+	h.success(w, respData{
+		"installed": installed,
+	})
+}
+
 func (h *HttpServer) preview(w http.ResponseWriter, r *http.Request) {
 	realURL := r.URL.Query().Get("url")
 	if realURL == "" {
@@ -217,7 +224,7 @@ func (h *HttpServer) openFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HttpServer) install(w http.ResponseWriter, r *http.Request) {
-	if appOnce.isInstall() {
+	if appOnce.isInstall() && systemOnce.isCertInstalled() {
 		h.success(w, respData{
 			"isPass": systemOnce.Password == "",
 		})

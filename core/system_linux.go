@@ -140,3 +140,39 @@ func (s *SystemSetup) installCert() (string, error) {
 
 	return outs.String(), fmt.Errorf("certificate installation failed:\n%s", errs.String())
 }
+
+func (s *SystemSetup) isCertInstalled() bool {
+	_, err := s.initCert()
+	if err != nil {
+		return false
+	}
+
+	distro, err := s.getLinuxDistro()
+	if err != nil {
+		return false
+	}
+
+	certName := appOnce.AppName + ".crt"
+	var certPath string
+
+	switch distro {
+	case "deepin":
+		certPath = "/usr/share/ca-certificates/" + appOnce.AppName + "/" + certName
+	case "arch":
+		certPath = "/usr/share/ca-certificates/trust-source/" + certName
+	default:
+		certPath = "/usr/local/share/ca-certificates/" + certName
+	}
+
+	installed, err := os.ReadFile(certPath)
+	if err != nil {
+		return false
+	}
+
+	certData, err := os.ReadFile(s.CertFile)
+	if err != nil {
+		return false
+	}
+
+	return bytes.Equal(installed, certData)
+}

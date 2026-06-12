@@ -140,6 +140,9 @@
     "application": "Douyin,Kuaishou,Xiaohongshu,Wechat,Mini Programs,Youtube,Kugou Music,QQ Music,QQ Weishi,......",
     "forum": "Forum",
     "cert_download": "Certificate Download",
+    "cert_installing": "Installing...",
+    "cert_installed": "Certificate already installed",
+    "cert_install_success": "Certificate installed successfully",
     "source_code": "Source Code",
     "help": "Issues",
     "update_log": "Update Log"

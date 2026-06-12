@@ -38,10 +38,6 @@
         <div>{{ store.appInfo.Copyright }}</div>
         <div class="flex">
           <button class="pl-4" @click="toWebsite('https://s.gowas.cn/d/4089')">{{ t('footer.forum') }}</button>
-          <button class="pl-4" @click="toWebsite(certUrl)">{{ t('footer.cert_download') }}</button>
-          <button class="pl-4" @click="toWebsite('https://github.com/putyy/res-downloader')">{{ t('footer.source_code') }}</button>
-          <button class="pl-4" @click="toWebsite('https://github.com/putyy/res-downloader/issues')">{{ t('footer.help') }}</button>
-          <button class="pl-4" @click="toWebsite('https://github.com/putyy/res-downloader/releases')">{{ t('footer.update_log') }}</button>
         </div>
       </div>
     </div>
@@ -51,16 +47,12 @@
 <script lang="ts" setup>
 import {useIndexStore} from "@/stores"
 import {BrowserOpenURL} from "../../wailsjs/runtime"
-import {computed} from "vue"
 import {useI18n} from 'vue-i18n'
 
 const {t} = useI18n()
 const store = useIndexStore()
 const props = defineProps(["showModal"])
 const emits = defineEmits(["update:showModal"])
-const certUrl = computed(()=>{
-  return store.baseUrl + "/api/cert"
-})
 const changeShow = (value: boolean) => {
   emits('update:showModal', value)
 }
