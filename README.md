@@ -1,5 +1,5 @@
 <div align="center">
-
+打包：wails build -clean -upx -webview2="Embed"
 <a href="https://github.com/putyy/res-downloader"><img src="build/appicon.png" width="120"/></a>
 <h1>res-downloader</h1>
 <h4>📖 中文 | <a href="https://github.com/putyy/res-downloader/blob/master/README-EN.md">English</a></h4>
