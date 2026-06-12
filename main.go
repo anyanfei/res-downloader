@@ -4,13 +4,14 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"log"
+	"res-downloader/core"
+	"runtime"
+
 	"github.com/wailsapp/wails/v2/pkg/menu"
 	"github.com/wailsapp/wails/v2/pkg/options/linux"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
-	"log"
-	"res-downloader/core"
-	"runtime"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -52,6 +53,9 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets:     assets,
 			Middleware: core.Middleware,
+		},
+		SingleInstanceLock: &options.SingleInstanceLock{
+			UniqueId: "49492f32-b30f-4172-ab15-039116d076c3",
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup: func(ctx context.Context) {
