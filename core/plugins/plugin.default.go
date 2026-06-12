@@ -2,13 +2,14 @@ package plugins
 
 import (
 	"encoding/json"
-	"github.com/elazarl/goproxy"
-	gonanoid "github.com/matoous/go-nanoid/v2"
 	"net/http"
 	"path/filepath"
 	"res-downloader/core/shared"
 	"strconv"
 	"strings"
+
+	"github.com/elazarl/goproxy"
+	gonanoid "github.com/matoous/go-nanoid/v2"
 )
 
 type DefaultPlugin struct {
@@ -51,6 +52,11 @@ func (p *DefaultPlugin) OnResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *
 	urlSign := shared.Md5(rawUrl)
 	if ok := p.bridge.MediaIsMarked(urlSign); !ok && (isAll || isClassify) {
 		value, _ := strconv.ParseFloat(resp.Header.Get("content-length"), 64)
+		// 过滤追踪像素：Content-Length 小于 80 字节的图片视为埋点/信标
+		if classify == "image" && value >= 0 && value <= 90 {
+			return resp
+		}
+
 		id, err := gonanoid.New()
 		if err != nil {
 			id = urlSign

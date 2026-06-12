@@ -7,10 +7,12 @@ import (
 	"github.com/vrischmann/userdir"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"regexp"
 	"res-downloader/core/shared"
 	"strconv"
+	"syscall"
 	"time"
 )
 
@@ -129,6 +131,13 @@ ILKEQKmPPzKs7kp/7Nz+2cT3
 func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
 	go httpServerOnce.run()
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		<-c
+		a.UnsetSystemProxy()
+		os.Exit(0)
+	}()
 }
 
 func (a *App) OnExit() {

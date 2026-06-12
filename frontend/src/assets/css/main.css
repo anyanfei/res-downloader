@@ -16,3 +16,15 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
+
+@keyframes pin-color-flash {
+  0%   { color: #ef4444; }
+  33%  { color: #eab308; }
+  66%  { color: #22c55e; }
+  100% { color: #ef4444; }
+}
+
+.pin-flashing {
+  animation: pin-color-flash 1.5s infinite;
+  font-weight: bold;
+}

@@ -11,6 +11,13 @@
         </NButton>
         <NSelect style="min-width: 100px;--wails-draggable:no-drag" :placeholder="t('index.grab_type')" v-model:value="resourcesType" multiple clearable
                  :max-tag-count="3" :options="classify"></NSelect>
+        <NSelect
+            style="min-width: 100px;--wails-draggable:no-drag"
+            :placeholder="t('index.pin_type')"
+            v-model:value="pinClassify"
+            :options="classify.slice(1)"
+            clearable
+        />
         <NButtonGroup style="--wails-draggable:no-drag">
 
           <NButton v-if="rememberChoice" tertiary type="error" @click.stop="clear" style="--wails-draggable:no-drag">
@@ -178,6 +185,7 @@ const certUrl = computed(() => {
 })
 const data = ref<any[]>([])
 const filterClassify = ref<string[]>([])
+const pinClassify = ref<string | null>(null)
 const filteredData = computed(() => {
   let result = data.value
 
@@ -191,6 +199,12 @@ const filteredData = computed(() => {
 
   if (urlSearchValue.value) {
     result = result.filter(item => item.Url?.toLowerCase().includes(urlSearchValue.value.toLowerCase()))
+  }
+
+  if (pinClassify.value) {
+    const pinnedItems = result.filter(item => item.Classify === pinClassify.value)
+    const otherItems = result.filter(item => item.Classify !== pinClassify.value)
+    result = [...pinnedItems, ...otherItems]
   }
 
   return result
@@ -300,7 +314,11 @@ const columns = ref<any[]>([
     },
     render: (row: appType.MediaInfo) => {
       const item = classify.value.find(item => item.value === row.Classify)
-      return item ? item.label : row.Classify
+      const label = item ? item.label : row.Classify
+      if (pinClassify.value && row.Classify === pinClassify.value) {
+        return h('span', {class: 'pin-flashing'}, label)
+      }
+      return label
     }
   },
   {
@@ -315,7 +333,24 @@ const columns = ref<any[]>([
           objectFit: "contain",
           lazy: true,
           "render-toolbar": renderToolbar,
-          src: row.Url
+          src: row.Url,
+          onError: () => {
+            const idx = data.value.findIndex(item => item.Id === row.Id)
+            if (idx !== -1) {
+              data.value.splice(idx, 1)
+              cacheData()
+            }
+          },
+          onLoad: (e: Event) => {
+            const img = e.target as HTMLImageElement
+            if (img && img.naturalWidth <= 1 && img.naturalHeight <= 1) {
+              const idx = data.value.findIndex(item => item.Id === row.Id)
+              if (idx !== -1) {
+                data.value.splice(idx, 1)
+                cacheData()
+              }
+            }
+          }
         }))
       }
       return [
@@ -517,11 +552,24 @@ onMounted(() => {
     rememberChoice.value = true
   }
 
+  const pinClassifyCache = localStorage.getItem("pin-classify")
+  if (pinClassifyCache) {
+    pinClassify.value = pinClassifyCache
+  }
+
   watch(rememberChoice, (n, o) => {
     if (rememberChoice.value) {
       localStorage.setItem("remember-clear-choice", "1")
     } else {
       localStorage.removeItem("remember-clear-choice")
+    }
+  })
+
+  watch(pinClassify, (n, o) => {
+    if (pinClassify.value) {
+      localStorage.setItem("pin-classify", pinClassify.value)
+    } else {
+      localStorage.removeItem("pin-classify")
     }
   })
 
@@ -612,18 +660,24 @@ const resetTableHeight = () => {
 const buildClassify = () => {
   const mimeMap = store.globalConfig.MimeMap ?? {}
   const seen = new Set()
+  const types = Object.values(mimeMap)
+      .filter(({Type}) => {
+        if (seen.has(Type)) return false
+        seen.add(Type)
+        return true
+      })
+      .map(({Type}) => ({
+        value: Type,
+        label: classifyAlias[Type] ?? Type,
+      }))
+      .sort((a, b) => {
+        if (a.value === 'video') return -1
+        if (b.value === 'video') return 1
+        return 0
+      })
   classify.value = [
     {value: "all", label: computed(() => t("index.all"))},
-    ...Object.values(mimeMap)
-        .filter(({Type}) => {
-          if (seen.has(Type)) return false
-          seen.add(Type)
-          return true
-        })
-        .map(({Type}) => ({
-          value: Type,
-          label: classifyAlias[Type] ?? Type,
-        })),
+    ...types,
   ]
 }
 
@@ -691,7 +745,10 @@ const dataAction = (row: appType.MediaInfo, index: number, type: string) => {
         return
       }
       appApi.delete({sign: [row.UrlSign]}).then(() => {
-        data.value.splice(index, 1)
+        const idx = data.value.findIndex(item => item.Id === row.Id)
+        if (idx !== -1) {
+          data.value.splice(idx, 1)
+        }
         cacheData()
       })
       break
@@ -838,6 +895,11 @@ const download = (row: appType.MediaInfo, index: number) => {
     downloadQueue.value.push(row)
     window?.$message?.info(t("index.download_queued", {count: downloadQueue.value.length}))
     return
+  }
+
+  if (row.Status === "done" || row.Status === "error") {
+    row.Status = "ready"
+    row.SavePath = ""
   }
 
   startDownload(row, index)

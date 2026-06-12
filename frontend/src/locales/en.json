@@ -91,6 +91,7 @@
     "download_queued": "has been added to the queue, current queue length：{count}",
     "search": "Search",
     "search_description": "Keyword Search...",
+    "pin_type": "Pin Type",
     "start_err_tip": "Error Message",
     "start_err_content": "The current startup process has encountered an issue. Do you want to reset the application?",
     "start_err_positiveText": "Clear cache and restart",
